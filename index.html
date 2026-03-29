@@ -36,7 +36,6 @@ animation:fadeOut 2s forwards 2s;
 
 <body>
 
-<!-- Splash -->
 <div id="splash">YLG</div>
 
 <div class="header">YLG Tracker</div>
@@ -51,17 +50,17 @@ animation:fadeOut 2s forwards 2s;
 <!-- ADD -->
 <div id="add" class="section">
 <div class="card">
-<input id="search" placeholder="Enter Game Name">
+<input id="gameInput" placeholder="Enter Game Name">
 <button onclick="handleGame()">Continue</button>
 </div>
 
 <div class="card" id="entryBox" style="display:none;">
 <input type="date" id="date">
-<input type="number" id="vip" placeholder="VIP">
-<input type="number" id="bal" placeholder="Balance">
-<input type="number" id="with" placeholder="Withdraw">
-<input type="number" id="ref" placeholder="Refer">
-<button onclick="saveEntry()">Save</button>
+<input type="number" id="vip" placeholder="VIP Level">
+<input type="number" id="balance" placeholder="Balance">
+<input type="number" id="withdraw" placeholder="Withdraw">
+<input type="number" id="refer" placeholder="Refer Count">
+<button onclick="saveEntry()">Save Entry</button>
 </div>
 </div>
 
@@ -79,12 +78,12 @@ animation:fadeOut 2s forwards 2s;
 
 <!-- NAV -->
 <div class="nav">
-<div onclick="show('home')">🏠</div>
-<div onclick="show('add')">➕</div>
-<div onclick="show('logsPage')">📜</div>
+<div onclick="showPage('home')">🏠</div>
+<div onclick="showPage('add')">➕</div>
+<div onclick="showPage('logsPage')">📜</div>
 </div>
 
-<!-- INSTALL MODAL -->
+<!-- INSTALL -->
 <div id="installModal" style="display:none;position:fixed;bottom:20px;left:10px;right:10px;background:#1e293b;padding:15px;border-radius:12px;">
 <b>Install App</b>
 <p>Add to home screen</p>
@@ -94,28 +93,34 @@ animation:fadeOut 2s forwards 2s;
 <script>
 
 // ===== STORAGE =====
+const STORAGE_KEY = "ylg_data";
+
 function getData(){
-try{return JSON.parse(localStorage.getItem("ylg_data"))||{games:[],logs:[]}}
+try{return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {games:[],logs:[]}}
 catch{return {games:[],logs:[]}}
 }
-function saveData(d){localStorage.setItem("ylg_data",JSON.stringify(d))}
 
-// ===== NAV =====
-function show(id){
+function saveData(data){
+localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+// ===== NAVIGATION =====
+function showPage(id){
 document.querySelectorAll(".section").forEach(s=>s.classList.remove("show"));
 document.getElementById(id).classList.add("show");
 }
 
-// ===== GAME =====
+// ===== GAME HANDLING =====
 let currentGame="";
+
 function handleGame(){
-let name=document.getElementById("search").value.trim();
-if(!name)return alert("Enter game");
+let name=document.getElementById("gameInput").value.trim();
+if(!name)return alert("Enter game name");
 
 let data=getData();
 
 if(!data.games.includes(name)){
-if(confirm("Add new game?")){
+if(confirm("Game not found. Add new?")){
 data.games.push(name);
 saveData(data);
 }
@@ -126,23 +131,25 @@ document.getElementById("entryBox").style.display="block";
 updateFilter();
 }
 
-// ===== SAVE =====
+// ===== SAVE ENTRY =====
 function saveEntry(){
 let data=getData();
-let date=document.getElementById("date").value;
-if(!date)return alert("Select date");
 
-data.logs.unshift({
+let entry={
 game:currentGame,
-date:date,
-vip:vip.value||0,
-bal:+bal.value||0,
-with:+with.value||0,
-ref:ref.value||0
-});
+date:document.getElementById("date").value,
+vip:Number(document.getElementById("vip").value)||0,
+balance:Number(document.getElementById("balance").value)||0,
+withdraw:Number(document.getElementById("withdraw").value)||0,
+refer:Number(document.getElementById("refer").value)||0
+};
 
+if(!entry.date)return alert("Select date");
+
+data.logs.unshift(entry);
 saveData(data);
-alert("Saved!");
+
+alert("Saved successfully");
 render();
 }
 
@@ -151,51 +158,58 @@ let chart1,chart2;
 
 function render(){
 let data=getData();
-let filter=document.getElementById("filter").value;
+let selectedGame=document.getElementById("filter").value;
 
-let html="",totalBal=0,totalWith=0;
+let html="";
+let totalBalance=0,totalWithdraw=0;
 let gameProfit={},dateProfit={};
 
-data.logs.forEach(l=>{
-if(filter && l.game!==filter)return;
+data.logs.forEach(log=>{
+if(selectedGame && log.game!==selectedGame) return;
 
-let p=l.with-l.bal;
+let profit=log.withdraw-log.balance;
 
-totalBal+=l.bal;
-totalWith+=l.with;
+totalBalance+=log.balance;
+totalWithdraw+=log.withdraw;
 
-gameProfit[l.game]=(gameProfit[l.game]||0)+p;
-dateProfit[l.date]=(dateProfit[l.date]||0)+p;
+gameProfit[log.game]=(gameProfit[log.game]||0)+profit;
+dateProfit[log.date]=(dateProfit[log.date]||0)+profit;
 
 html+=`
 <div>
-<b>${l.game}</b><br>
-${l.date}<br>
-VIP ${l.vip}<br>
-₹${l.bal} → ₹${l.with}<br>
-<span class="${p>=0?'profit':'loss'}">₹${p}</span>
+<b>${log.game}</b><br>
+${log.date}<br>
+VIP ${log.vip}<br>
+₹${log.balance} → ₹${log.withdraw}<br>
+<span class="${profit>=0?'profit':'loss'}">₹${profit}</span>
 <hr>
 </div>`;
 });
 
-logs.innerHTML=html||"No Data";
+document.getElementById("logs").innerHTML=html||"No Data";
 
-// stats
-let net=totalWith-totalBal;
-stats.innerHTML=`Balance ₹${totalBal}<br>Withdraw ₹${totalWith}<br><b class="${net>=0?'profit':'loss'}">₹${net}</b>`;
+// DASHBOARD
+let net=totalWithdraw-totalBalance;
 
-// charts
+document.getElementById("stats").innerHTML=
+`Balance ₹${totalBalance}<br>
+Withdraw ₹${totalWithdraw}<br>
+<b class="${net>=0?'profit':'loss'}">Net ₹${net}</b>`;
+
+// CHARTS
 if(typeof Chart!=="undefined"){
-if(chart1)chart1.destroy();
-chart1=new Chart(chart1Canvas,{
+if(chart1) chart1.destroy();
+chart1=new Chart(document.getElementById("chart1"),{
 type:"line",
-data:{labels:Object.keys(dateProfit),datasets:[{data:Object.values(dateProfit)}]}
+data:{labels:Object.keys(dateProfit),
+datasets:[{label:"Profit Trend",data:Object.values(dateProfit)}]}
 });
 
-if(chart2)chart2.destroy();
-chart2=new Chart(chart2Canvas,{
+if(chart2) chart2.destroy();
+chart2=new Chart(document.getElementById("chart2"),{
 type:"bar",
-data:{labels:Object.keys(gameProfit),datasets:[{data:Object.values(gameProfit)}]}
+data:{labels:Object.keys(gameProfit),
+datasets:[{label:"Game Profit",data:Object.values(gameProfit)}]}
 });
 }
 
@@ -204,23 +218,36 @@ updateFilter();
 
 // ===== FILTER =====
 function updateFilter(){
-let g=getData().games;
-filter.innerHTML='<option value="">All</option>'+g.map(x=>`<option>${x}</option>`).join("");
+let games=getData().games;
+let dropdown=document.getElementById("filter");
+
+dropdown.innerHTML='<option value="">All Games</option>'+
+games.map(g=>`<option>${g}</option>`).join("");
 }
 
 // ===== EXPORT =====
-function exportAll(){download(getData().logs,"all.csv")}
-function exportOne(){
-let f=filter.value;
-download(getData().logs.filter(x=>x.game===f),f+".csv")
+function exportAll(){
+downloadCSV(getData().logs,"all_data.csv");
 }
 
-function download(data,file){
-let csv="Game,Date,VIP,Bal,With,Ref\n";
-data.forEach(d=>csv+=`${d.game},${d.date},${d.vip},${d.bal},${d.with},${d.ref}\n`);
+function exportOne(){
+let game=document.getElementById("filter").value;
+if(!game)return alert("Select a game");
+
+let logs=getData().logs.filter(l=>l.game===game);
+downloadCSV(logs,game+"_data.csv");
+}
+
+function downloadCSV(data,fileName){
+let csv="Game,Date,VIP,Balance,Withdraw,Refer\n";
+data.forEach(d=>{
+csv+=`${d.game},${d.date},${d.vip},${d.balance},${d.withdraw},${d.refer}\n`;
+});
+
+let blob=new Blob([csv]);
 let a=document.createElement("a");
-a.href=URL.createObjectURL(new Blob([csv]));
-a.download=file;
+a.href=URL.createObjectURL(blob);
+a.download=fileName;
 a.click();
 }
 
@@ -234,13 +261,13 @@ a.click();
 }
 
 function restoreData(e){
-let r=new FileReader();
-r.onload=()=>{
-localStorage.setItem("ylg_data",r.result);
-alert("Restored!");
+let reader=new FileReader();
+reader.onload=()=>{
+localStorage.setItem(STORAGE_KEY, reader.result);
+alert("Data Restored!");
 location.reload();
 };
-r.readAsText(e.target.files[0]);
+reader.readAsText(e.target.files[0]);
 }
 
 // ===== INSTALL =====
@@ -248,14 +275,14 @@ let deferredPrompt;
 window.addEventListener("beforeinstallprompt",e=>{
 e.preventDefault();
 deferredPrompt=e;
-installModal.style.display="block";
+document.getElementById("installModal").style.display="block";
 });
 
 function installApp(){
 if(deferredPrompt){
 deferredPrompt.prompt();
 deferredPrompt=null;
-installModal.style.display="none";
+document.getElementById("installModal").style.display="none";
 }
 }
 
@@ -266,9 +293,6 @@ navigator.serviceWorker.register("service-worker.js");
 
 // ===== INIT =====
 window.onload=render;
-
-const chart1Canvas=document.getElementById("chart1");
-const chart2Canvas=document.getElementById("chart2");
 
 </script>
 
