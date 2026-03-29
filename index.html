@@ -1,5 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <link rel="manifest" href="manifest.json">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#0f172a">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>YLG Tracker</title>
+    <style>
+        :root { --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; --text: #f1f5f9; --success: #10b981; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
+        .card { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 15px; border: 1px solid #334155; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 14px; border-radius: 8px; border: none; font-weight: bold; background: var(--accent); color: #0f172a; cursor: pointer; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .log-item { border-bottom: 1px solid #334155; padding: 10px 0; display: flex; justify-content: space-between; }
+        h1, h3 { margin: 0 0 10px 0; color: var(--accent); }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>YLG Tracker</h1>
+        <div class="grid">
+            <div><small>Balance</small><div id="totalBal" style="font-size:1.2em; font-weight:bold;">₹0</div></div>
+            <div><small>Profit</small><div id="netProfit" style="font-size:1.2em; font-weight:bold; color:var(--success);">₹0</div></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Add Entry</h3>
+        <select id="gameName" onchange="loadLastData()">
+            <option value="Yono 101z">Yono 101z</option>
+            <option value="Yono 567 Slots">Yono 567 Slots</option>
+            <option value="Yono 777">Yono 777</option>
+            <option value="Yono 789">Yono 789</option>
+        </select>
+        <div class="grid">
+            <input type="number" id="vip" placeholder="VIP">
+            <input type="number" id="refer" placeholder="Refer">
+        </div>
+        <input type="number" id="balance" placeholder="Balance (₹)">
+        <input type="number" id="withdraw" placeholder="Withdraw (₹)">
+        <button onclick="saveEntry()">SAVE DATA</button>
+    </div>
+
+    <div class="card">
+        <h3>History</h3>
+        <input type="text" id="search" placeholder="Search..." onkeyup="renderLogs()">
+        <div id="logsList"></div>
+    </div>
+
+    <script>
+        // Use a safe initialization to prevent blank screen
+        let logs = [];
+        try {
+            logs = JSON.parse(localStorage.getItem('ylg_v1') || '[]');
+        } catch(e) {
+            console.error("Local storage error", e);
+        }
+
+        function saveEntry() {
+            const entry = {
+                id: Date.now(),
+                date: new Date().toLocaleDateString('en-IN'),
+                game: document.getElementById('gameName').value,
+                vip: document.getElementById('vip').value || 0,
+                refer: document.getElementById('refer').value || 0,
+                bal: parseFloat(document.getElementById('balance').value || 0),
+                wd: parseFloat(document.getElementById('withdraw').value || 0)
+            };
+            logs.unshift(entry);
+            localStorage.setItem('ylg_v1', JSON.stringify(logs));
+            updateUI();
+            alert("Saved!");
+        }
+
+        function renderLogs() {
+            const filter = document.getElementById('search').value.toLowerCase();
+            const list = document.getElementById('logsList');
+            list.innerHTML = logs
+                .filter(l => l.game.toLowerCase().includes(filter) || l.date.includes(filter))
+                .map(l => `
+                    <div class="log-item">
+                        <div><b>${l.game}</b><br><small>${l.date}</small></div>
+                        <div style="text-align:right">₹${l.bal}<br><small style="color:var(--success)">+₹${l.wd}</small></div>
+                    </div>
+                `).join('');
+        }
+
+        function updateUI() {
+            const totalBal = logs.reduce((s, a) => s + a.bal, 0);
+            const totalWd = logs.reduce((s, a) => s + a.wd, 0);
+            document.getElementById('totalBal').innerText = `₹${totalBal}`;
+            document.getElementById('netProfit').innerText = `₹${totalWd - totalBal}`;
+            renderLogs();
+        }
+
+        function loadLastData() {
+            let selected = document.getElementById('gameName').value;
+            let last = logs.find(l => l.game === selected);
+            if(last) {
+                document.getElementById('vip').value = last.vip;
+                document.getElementById('balance').value = last.bal;
+            }
+        }
+
+        // Run on load
+        window.onload = updateUI;
+    </script>
+</body>
+</html>
