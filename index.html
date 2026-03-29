@@ -1,15 +1,75 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>YLG Tracker</title>
 
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f172a">
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
-body{margin:0;font-family:sans-serif;background:#0f172a;color:#fff}
-.card{background:#1e293b;margin:10px;padding:12px;border-radius:10px}
-input,select{width:100%;padding:10px;margin:5px 0;border:none;border-radius:8px}
-button{padding:10px;width:100%;background:#f59e0b;border:none;border-radius:8px;color:#fff}
-.item{border-bottom:1px solid #333;padding:10px}
+body{
+margin:0;
+font-family:sans-serif;
+background:#0f172a;
+color:#fff;
+}
+
+.header{
+padding:15px;
+text-align:center;
+font-size:20px;
+background:#020617;
+}
+
+.card{
+background:#1e293b;
+margin:10px;
+padding:15px;
+border-radius:12px;
+}
+
+input,select{
+width:100%;
+padding:10px;
+margin:5px 0;
+border:none;
+border-radius:8px;
+}
+
+button{
+width:100%;
+padding:12px;
+border:none;
+border-radius:10px;
+background:#f59e0b;
+color:#000;
+font-weight:bold;
+}
+
+.nav{
+position:fixed;
+bottom:0;
+width:100%;
+display:flex;
+background:#020617;
+}
+
+.nav div{
+flex:1;
+text-align:center;
+padding:12px;
+cursor:pointer;
+}
+
+.section{display:none;padding-bottom:70px}
+.show{display:block}
+
 .profit{color:#22c55e}
 .loss{color:#ef4444}
 </style>
@@ -17,178 +77,210 @@ button{padding:10px;width:100%;background:#f59e0b;border:none;border-radius:8px;
 
 <body>
 
+<div class="header">YLG Tracker</div>
+
+<!-- HOME -->
+<div id="home" class="section show">
 <div class="card">
-<h3>🔍 Search / Add Game</h3>
-<input type="text" id="search" placeholder="Enter game name">
+<div id="stats"></div>
+</div>
+
+<div class="card">
+<canvas id="chart1"></canvas>
+</div>
+
+<div class="card">
+<canvas id="chart2"></canvas>
+</div>
+</div>
+
+<!-- ADD -->
+<div id="add" class="section">
+<div class="card">
+<input id="search" placeholder="Enter Game Name">
 <button onclick="handleGame()">Continue</button>
 </div>
 
 <div class="card" id="entryBox" style="display:none;">
-<h3>➕ Add Entry</h3>
-
 <input type="date" id="date">
 <input type="number" id="vip" placeholder="VIP">
 <input type="number" id="bal" placeholder="Balance">
 <input type="number" id="with" placeholder="Withdraw">
 <input type="number" id="ref" placeholder="Refer">
-
-<button onclick="saveEntry()">Save Entry</button>
+<button onclick="saveEntry()">Save</button>
+</div>
 </div>
 
+<!-- LOGS -->
+<div id="logsPage" class="section">
 <div class="card">
-<h3>📊 Top Games</h3>
-<div id="topGames"></div>
-</div>
-
-<div class="card">
-<h3>📜 Logs</h3>
-
-<select id="filter" onchange="render()">
-<option value="">All Games</option>
-</select>
-
+<select id="filter" onchange="render()"></select>
 <button onclick="exportAll()">Export All</button>
 <button onclick="exportOne()">Export Selected</button>
+</div>
+<div class="card" id="logs"></div>
+</div>
 
-<div id="logs"></div>
+<!-- NAV -->
+<div class="nav">
+<div onclick="show('home')">🏠</div>
+<div onclick="show('add')">➕</div>
+<div onclick="show('logsPage')">📜</div>
 </div>
 
 <script>
 
+// ===== STORAGE =====
+function getData(){
+return JSON.parse(localStorage.getItem("ylg_data")||'{"games":[],"logs":[]}');
+}
+function saveData(d){
+localStorage.setItem("ylg_data",JSON.stringify(d));
+}
+
+// ===== NAV =====
+function show(id){
+document.querySelectorAll(".section").forEach(s=>s.classList.remove("show"));
+document.getElementById(id).classList.add("show");
+}
+
+// ===== GAME =====
 let currentGame="";
 
-// STORAGE
-function getGames(){return JSON.parse(localStorage.getItem('games')||'[]')}
-function saveGames(g){localStorage.setItem('games',JSON.stringify(g))}
-function getLogs(){return JSON.parse(localStorage.getItem('logs')||'[]')}
-function saveLogs(l){localStorage.setItem('logs',JSON.stringify(l))}
-
-// SEARCH / ADD
 function handleGame(){
-let name=search.value.trim();
-if(!name){alert("Enter game name");return;}
+let name=document.getElementById("search").value.trim();
+if(!name) return alert("Enter game name");
 
-let games=getGames();
+let data=getData();
 
-if(games.includes(name)){
-currentGame=name;
-alert("Game found! Add entry.");
-}else{
-if(confirm("Game not found. Add new game?")){
-games.push(name);
-saveGames(games);
-currentGame=name;
+if(!data.games.includes(name)){
+if(confirm("Game not found. Add new?")){
+data.games.push(name);
+saveData(data);
 }
 }
 
-entryBox.style.display="block";
+currentGame=name;
+document.getElementById("entryBox").style.display="block";
 updateFilter();
 }
 
-// SAVE ENTRY
+// ===== SAVE =====
 function saveEntry(){
-let logs=getLogs();
+let data=getData();
 
 let entry={
 game:currentGame,
-date:date.value,
-vip:vip.value,
-bal:+bal.value||0,
-with:+with.value||0,
-ref:ref.value
+date:document.getElementById("date").value,
+vip:document.getElementById("vip").value,
+bal:+document.getElementById("bal").value||0,
+with:+document.getElementById("with").value||0,
+ref:document.getElementById("ref").value
 };
 
-logs.unshift(entry);
-saveLogs(logs);
+if(!entry.date) return alert("Select date");
+
+data.logs.unshift(entry);
+saveData(data);
 
 alert("Saved!");
 render();
 }
 
-// RENDER LOGS
+// ===== RENDER =====
+let chart1,chart2;
+
 function render(){
-let logs=getLogs();
-let f=filter.value;
+let data=getData();
+let filter=document.getElementById("filter").value;
 
 let html="";
+let totalBal=0,totalWith=0;
+let gameProfit={},dateProfit={};
 
-logs.filter(l=>!f||l.game==f).forEach(l=>{
+data.logs.forEach(l=>{
+if(filter && l.game!==filter) return;
+
 let p=l.with-l.bal;
 
+totalBal+=l.bal;
+totalWith+=l.with;
+
+gameProfit[l.game]=(gameProfit[l.game]||0)+p;
+dateProfit[l.date]=(dateProfit[l.date]||0)+p;
+
 html+=`
-<div class="item">
+<div>
 <b>${l.game}</b><br>
 ${l.date}<br>
-VIP: ${l.vip}<br>
-Bal: ₹${l.bal}<br>
-With: ₹${l.with}<br>
-Ref: ${l.ref}<br>
-<span class="${p>=0?'profit':'loss'}">Profit ₹${p}</span>
-</div>
-`;
+VIP ${l.vip}<br>
+₹${l.bal} → ₹${l.with}<br>
+<span class="${p>=0?'profit':'loss'}">₹${p}</span>
+<hr>
+</div>`;
 });
 
 document.getElementById("logs").innerHTML=html||"No Data";
 
-updateTopGames();
+// STATS
+let net=totalWith-totalBal;
+
+document.getElementById("stats").innerHTML=
+`Balance ₹${totalBal}<br>Withdraw ₹${totalWith}<br><b class="${net>=0?'profit':'loss'}">₹${net}</b>`;
+
+// CHART FIX
+if(chart1) chart1.destroy();
+chart1=new Chart(document.getElementById("chart1"),{
+type:"line",
+data:{
+labels:Object.keys(dateProfit),
+datasets:[{label:"Profit Trend",data:Object.values(dateProfit)}]
 }
-
-// UPDATE FILTER
-function updateFilter(){
-let games=getGames();
-filter.innerHTML='<option value="">All</option>' + 
-games.map(g=>`<option>${g}</option>`).join('');
-}
-
-// EXPORT ALL
-function exportAll(){
-let logs=getLogs();
-downloadCSV(logs,"all_data.csv");
-}
-
-// EXPORT ONE
-function exportOne(){
-let f=filter.value;
-if(!f){alert("Select game first");return;}
-
-let logs=getLogs().filter(l=>l.game==f);
-downloadCSV(logs,f+"_data.csv");
-}
-
-// DOWNLOAD CSV
-function downloadCSV(data,file){
-let csv="Game,Date,VIP,Balance,Withdraw,Refer\n";
-
-data.forEach(d=>{
-csv+=`${d.game},${d.date},${d.vip},${d.bal},${d.with},${d.ref}\n`;
 });
 
-let blob=new Blob([csv]);
+if(chart2) chart2.destroy();
+chart2=new Chart(document.getElementById("chart2"),{
+type:"bar",
+data:{
+labels:Object.keys(gameProfit),
+datasets:[{label:"Game Profit",data:Object.values(gameProfit)}]
+}
+});
+
+updateFilter();
+}
+
+// ===== FILTER =====
+function updateFilter(){
+let games=getData().games;
+let f=document.getElementById("filter");
+
+f.innerHTML='<option value="">All</option>'+games.map(g=>`<option>${g}</option>`).join("");
+}
+
+// ===== EXPORT =====
+function exportAll(){download(getData().logs,"all.csv")}
+function exportOne(){
+let f=document.getElementById("filter").value;
+download(getData().logs.filter(l=>l.game===f),f+".csv");
+}
+
+function download(data,file){
+let csv="Game,Date,VIP,Bal,With,Ref\n";
+data.forEach(d=>csv+=`${d.game},${d.date},${d.vip},${d.bal},${d.with},${d.ref}\n`);
+
 let a=document.createElement("a");
-a.href=URL.createObjectURL(blob);
+a.href=URL.createObjectURL(new Blob([csv]));
 a.download=file;
 a.click();
 }
 
-// TOP GAMES
-function updateTopGames(){
-let logs=getLogs();
-let map={};
-
-logs.forEach(l=>{
-let p=l.with-l.bal;
-map[l.game]=(map[l.game]||0)+p;
-});
-
-let sorted=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,3);
-
-topGames.innerHTML=sorted.map(g=>
-`<div>${g[0]}: ₹${g[1]}</div>`
-).join('');
+// ===== SERVICE WORKER =====
+if("serviceWorker" in navigator){
+navigator.serviceWorker.register("service-worker.js");
 }
 
-// INIT
-updateFilter();
+// ===== INIT =====
 render();
 
 </script>
