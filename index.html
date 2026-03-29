@@ -1,12 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>YLG Tracker</title>
-
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0f172a">
 
 <style>
 body{margin:0;font-family:sans-serif;background:#0f172a;color:#fff}
@@ -14,136 +10,187 @@ body{margin:0;font-family:sans-serif;background:#0f172a;color:#fff}
 input,select{width:100%;padding:10px;margin:5px 0;border:none;border-radius:8px}
 button{padding:10px;width:100%;background:#f59e0b;border:none;border-radius:8px;color:#fff}
 .item{border-bottom:1px solid #333;padding:10px}
+.profit{color:#22c55e}
+.loss{color:#ef4444}
 </style>
 </head>
 
 <body>
 
 <div class="card">
-<h3>Game Tracker</h3>
+<h3>🔍 Search / Add Game</h3>
+<input type="text" id="search" placeholder="Enter game name">
+<button onclick="handleGame()">Continue</button>
+</div>
 
-<input type="text" id="searchGame" placeholder="Search/Add Game" onkeyup="searchGame()">
-<div id="gameList"></div>
+<div class="card" id="entryBox" style="display:none;">
+<h3>➕ Add Entry</h3>
 
 <input type="date" id="date">
-<select id="gameSelect"></select>
-
 <input type="number" id="vip" placeholder="VIP">
-<input type="number" id="balance" placeholder="Balance">
-<input type="number" id="withdraw" placeholder="Withdraw">
-<input type="number" id="refer" placeholder="Refer">
+<input type="number" id="bal" placeholder="Balance">
+<input type="number" id="with" placeholder="Withdraw">
+<input type="number" id="ref" placeholder="Refer">
 
-<button onclick="save()">Save</button>
+<button onclick="saveEntry()">Save Entry</button>
 </div>
 
 <div class="card">
-<h3>Logs</h3>
-<select id="filterGame" onchange="render()"></select>
+<h3>📊 Top Games</h3>
+<div id="topGames"></div>
+</div>
+
+<div class="card">
+<h3>📜 Logs</h3>
+
+<select id="filter" onchange="render()">
+<option value="">All Games</option>
+</select>
+
+<button onclick="exportAll()">Export All</button>
+<button onclick="exportOne()">Export Selected</button>
+
 <div id="logs"></div>
 </div>
 
 <script>
-// DATA
+
+let currentGame="";
+
+// STORAGE
 function getGames(){return JSON.parse(localStorage.getItem('games')||'[]')}
 function saveGames(g){localStorage.setItem('games',JSON.stringify(g))}
 function getLogs(){return JSON.parse(localStorage.getItem('logs')||'[]')}
 function saveLogs(l){localStorage.setItem('logs',JSON.stringify(l))}
 
-// INIT
-function init(){
-let g=getGames();
-if(g.length==0){g=["Yono 101z"];saveGames(g)}
-updateUI();
-render();
+// SEARCH / ADD
+function handleGame(){
+let name=search.value.trim();
+if(!name){alert("Enter game name");return;}
+
+let games=getGames();
+
+if(games.includes(name)){
+currentGame=name;
+alert("Game found! Add entry.");
+}else{
+if(confirm("Game not found. Add new game?")){
+games.push(name);
+saveGames(games);
+currentGame=name;
+}
 }
 
-// GAME LIST
-function updateUI(){
-let g=getGames();
-gameList.innerHTML=g.map(x=>`<div class="item">${x}</div>`).join('');
-gameSelect.innerHTML=g.map(x=>`<option>${x}</option>`).join('');
-filterGame.innerHTML='<option value="">All</option>'+gameSelect.innerHTML;
-}
-
-// SEARCH ADD
-function searchGame(){
-let val=searchGame.value.toLowerCase();
-let g=getGames();
-if(val && !g.find(x=>x.toLowerCase()==val)){
-if(confirm("Add new game?")){
-g.push(searchGame.value);
-saveGames(g);
-updateUI();
-}
-}
+entryBox.style.display="block";
+updateFilter();
 }
 
 // SAVE ENTRY
-function save(){
+function saveEntry(){
 let logs=getLogs();
-logs.unshift({
+
+let entry={
+game:currentGame,
 date:date.value,
-game:gameSelect.value,
 vip:vip.value,
-balance:+balance.value||0,
-withdraw:+withdraw.value||0,
-refer:refer.value
-});
+bal:+bal.value||0,
+with:+with.value||0,
+ref:ref.value
+};
+
+logs.unshift(entry);
 saveLogs(logs);
+
+alert("Saved!");
 render();
 }
 
-// RENDER
+// RENDER LOGS
 function render(){
 let logs=getLogs();
-let f=filterGame.value;
-logsDiv.innerHTML=logs.filter(l=>!f||l.game==f).map(l=>{
-let p=l.withdraw-l.balance;
-return `<div class="item">
+let f=filter.value;
+
+let html="";
+
+logs.filter(l=>!f||l.game==f).forEach(l=>{
+let p=l.with-l.bal;
+
+html+=`
+<div class="item">
 <b>${l.game}</b><br>
 ${l.date}<br>
 VIP: ${l.vip}<br>
-Bal: ₹${l.balance}<br>
-With: ₹${l.withdraw}<br>
-Ref: ${l.refer}<br>
-<b style="color:${p>=0?'#22c55e':'#ef4444'}">Profit ₹${p}</b>
-</div>`;
-}).join('');
-}
-
-// INSTALL POPUP
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', e=>{
-e.preventDefault();
-deferredPrompt=e;
-let btn=document.createElement("button");
-btn.innerText="Install App";
-btn.style.position="fixed";
-btn.style.bottom="20px";
-btn.style.left="50%";
-btn.style.transform="translateX(-50%)";
-document.body.appendChild(btn);
-
-btn.onclick=()=>{
-deferredPrompt.prompt();
-deferredPrompt=null;
-btn.remove();
-};
+Bal: ₹${l.bal}<br>
+With: ₹${l.with}<br>
+Ref: ${l.ref}<br>
+<span class="${p>=0?'profit':'loss'}">Profit ₹${p}</span>
+</div>
+`;
 });
 
-// NOTIFICATION
-setTimeout(()=>{
-if("Notification" in window){
-Notification.requestPermission();
-}
-},2000);
+document.getElementById("logs").innerHTML=html||"No Data";
 
-// SERVICE WORKER
-if('serviceWorker' in navigator){
-navigator.serviceWorker.register('service-worker.js');
+updateTopGames();
 }
 
-init();
+// UPDATE FILTER
+function updateFilter(){
+let games=getGames();
+filter.innerHTML='<option value="">All</option>' + 
+games.map(g=>`<option>${g}</option>`).join('');
+}
+
+// EXPORT ALL
+function exportAll(){
+let logs=getLogs();
+downloadCSV(logs,"all_data.csv");
+}
+
+// EXPORT ONE
+function exportOne(){
+let f=filter.value;
+if(!f){alert("Select game first");return;}
+
+let logs=getLogs().filter(l=>l.game==f);
+downloadCSV(logs,f+"_data.csv");
+}
+
+// DOWNLOAD CSV
+function downloadCSV(data,file){
+let csv="Game,Date,VIP,Balance,Withdraw,Refer\n";
+
+data.forEach(d=>{
+csv+=`${d.game},${d.date},${d.vip},${d.bal},${d.with},${d.ref}\n`;
+});
+
+let blob=new Blob([csv]);
+let a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download=file;
+a.click();
+}
+
+// TOP GAMES
+function updateTopGames(){
+let logs=getLogs();
+let map={};
+
+logs.forEach(l=>{
+let p=l.with-l.bal;
+map[l.game]=(map[l.game]||0)+p;
+});
+
+let sorted=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,3);
+
+topGames.innerHTML=sorted.map(g=>
+`<div>${g[0]}: ₹${g[1]}</div>`
+).join('');
+}
+
+// INIT
+updateFilter();
+render();
+
 </script>
 
 </body>
