@@ -1,112 +1,150 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <link rel="manifest" href="manifest.json">
-    <meta name="mobile-web-app-capable" content="yes">
-    <title>YLG Tracker</title>
-    <style>
-        :root { --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; --text: #f1f5f9; --success: #10b981; }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
-        .card { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 15px; border: 1px solid #334155; }
-        input, select { width: 100%; padding: 12px; margin: 8px 0; background: #0f172a; border: 1px solid #475569; color: white; border-radius: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 14px; border-radius: 8px; border: none; font-weight: bold; background: var(--accent); color: #0f172a; cursor: pointer; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .log-item { border-bottom: 1px solid #334155; padding: 10px 0; display: flex; justify-content: space-between; }
-        h1, h3 { margin: 0 0 10px 0; color: var(--accent); }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YLG Tracker</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f172a">
+
+<style>
+body{margin:0;font-family:sans-serif;background:#0f172a;color:#fff}
+.card{background:#1e293b;margin:10px;padding:12px;border-radius:10px}
+input,select{width:100%;padding:10px;margin:5px 0;border:none;border-radius:8px}
+button{padding:10px;width:100%;background:#f59e0b;border:none;border-radius:8px;color:#fff}
+.item{border-bottom:1px solid #333;padding:10px}
+</style>
 </head>
+
 <body>
 
-    <div class="card">
-        <h1>YLG Tracker</h1>
-        <div class="grid">
-            <div><small>Balance</small><div id="totalBal" style="font-size:1.2em; font-weight:bold;">₹0</div></div>
-            <div><small>Profit</small><div id="netProfit" style="font-size:1.2em; font-weight:bold; color:var(--success);">₹0</div></div>
-        </div>
-    </div>
+<div class="card">
+<h3>Game Tracker</h3>
 
-    <div class="card">
-        <h3>Add Entry</h3>
-        <select id="gameName" onchange="loadLastData()">
-            <option value="Yono 101z">Yono 101z</option>
-            <option value="Yono 567 Slots">Yono 567 Slots</option>
-            <option value="Yono 777">Yono 777</option>
-            <option value="Yono 789">Yono 789</option>
-        </select>
-        <div class="grid">
-            <input type="number" id="vip" placeholder="VIP">
-            <input type="number" id="refer" placeholder="Refer">
-        </div>
-        <input type="number" id="balance" placeholder="Balance (₹)">
-        <input type="number" id="withdraw" placeholder="Withdraw (₹)">
-        <button onclick="saveEntry()">SAVE DATA</button>
-    </div>
+<input type="text" id="searchGame" placeholder="Search/Add Game" onkeyup="searchGame()">
+<div id="gameList"></div>
 
-    <div class="card">
-        <h3>History</h3>
-        <input type="text" id="search" placeholder="Search..." onkeyup="renderLogs()">
-        <div id="logsList"></div>
-    </div>
+<input type="date" id="date">
+<select id="gameSelect"></select>
 
-    <script>
-        // Use a safe initialization to prevent blank screen
-        let logs = [];
-        try {
-            logs = JSON.parse(localStorage.getItem('ylg_v1') || '[]');
-        } catch(e) {
-            console.error("Local storage error", e);
-        }
+<input type="number" id="vip" placeholder="VIP">
+<input type="number" id="balance" placeholder="Balance">
+<input type="number" id="withdraw" placeholder="Withdraw">
+<input type="number" id="refer" placeholder="Refer">
 
-        function saveEntry() {
-            const entry = {
-                id: Date.now(),
-                date: new Date().toLocaleDateString('en-IN'),
-                game: document.getElementById('gameName').value,
-                vip: document.getElementById('vip').value || 0,
-                refer: document.getElementById('refer').value || 0,
-                bal: parseFloat(document.getElementById('balance').value || 0),
-                wd: parseFloat(document.getElementById('withdraw').value || 0)
-            };
-            logs.unshift(entry);
-            localStorage.setItem('ylg_v1', JSON.stringify(logs));
-            updateUI();
-            alert("Saved!");
-        }
+<button onclick="save()">Save</button>
+</div>
 
-        function renderLogs() {
-            const filter = document.getElementById('search').value.toLowerCase();
-            const list = document.getElementById('logsList');
-            list.innerHTML = logs
-                .filter(l => l.game.toLowerCase().includes(filter) || l.date.includes(filter))
-                .map(l => `
-                    <div class="log-item">
-                        <div><b>${l.game}</b><br><small>${l.date}</small></div>
-                        <div style="text-align:right">₹${l.bal}<br><small style="color:var(--success)">+₹${l.wd}</small></div>
-                    </div>
-                `).join('');
-        }
+<div class="card">
+<h3>Logs</h3>
+<select id="filterGame" onchange="render()"></select>
+<div id="logs"></div>
+</div>
 
-        function updateUI() {
-            const totalBal = logs.reduce((s, a) => s + a.bal, 0);
-            const totalWd = logs.reduce((s, a) => s + a.wd, 0);
-            document.getElementById('totalBal').innerText = `₹${totalBal}`;
-            document.getElementById('netProfit').innerText = `₹${totalWd - totalBal}`;
-            renderLogs();
-        }
+<script>
+// DATA
+function getGames(){return JSON.parse(localStorage.getItem('games')||'[]')}
+function saveGames(g){localStorage.setItem('games',JSON.stringify(g))}
+function getLogs(){return JSON.parse(localStorage.getItem('logs')||'[]')}
+function saveLogs(l){localStorage.setItem('logs',JSON.stringify(l))}
 
-        function loadLastData() {
-            let selected = document.getElementById('gameName').value;
-            let last = logs.find(l => l.game === selected);
-            if(last) {
-                document.getElementById('vip').value = last.vip;
-                document.getElementById('balance').value = last.bal;
-            }
-        }
+// INIT
+function init(){
+let g=getGames();
+if(g.length==0){g=["Yono 101z"];saveGames(g)}
+updateUI();
+render();
+}
 
-        // Run on load
-        window.onload = updateUI;
-    </script>
+// GAME LIST
+function updateUI(){
+let g=getGames();
+gameList.innerHTML=g.map(x=>`<div class="item">${x}</div>`).join('');
+gameSelect.innerHTML=g.map(x=>`<option>${x}</option>`).join('');
+filterGame.innerHTML='<option value="">All</option>'+gameSelect.innerHTML;
+}
+
+// SEARCH ADD
+function searchGame(){
+let val=searchGame.value.toLowerCase();
+let g=getGames();
+if(val && !g.find(x=>x.toLowerCase()==val)){
+if(confirm("Add new game?")){
+g.push(searchGame.value);
+saveGames(g);
+updateUI();
+}
+}
+}
+
+// SAVE ENTRY
+function save(){
+let logs=getLogs();
+logs.unshift({
+date:date.value,
+game:gameSelect.value,
+vip:vip.value,
+balance:+balance.value||0,
+withdraw:+withdraw.value||0,
+refer:refer.value
+});
+saveLogs(logs);
+render();
+}
+
+// RENDER
+function render(){
+let logs=getLogs();
+let f=filterGame.value;
+logsDiv.innerHTML=logs.filter(l=>!f||l.game==f).map(l=>{
+let p=l.withdraw-l.balance;
+return `<div class="item">
+<b>${l.game}</b><br>
+${l.date}<br>
+VIP: ${l.vip}<br>
+Bal: ₹${l.balance}<br>
+With: ₹${l.withdraw}<br>
+Ref: ${l.refer}<br>
+<b style="color:${p>=0?'#22c55e':'#ef4444'}">Profit ₹${p}</b>
+</div>`;
+}).join('');
+}
+
+// INSTALL POPUP
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e=>{
+e.preventDefault();
+deferredPrompt=e;
+let btn=document.createElement("button");
+btn.innerText="Install App";
+btn.style.position="fixed";
+btn.style.bottom="20px";
+btn.style.left="50%";
+btn.style.transform="translateX(-50%)";
+document.body.appendChild(btn);
+
+btn.onclick=()=>{
+deferredPrompt.prompt();
+deferredPrompt=null;
+btn.remove();
+};
+});
+
+// NOTIFICATION
+setTimeout(()=>{
+if("Notification" in window){
+Notification.requestPermission();
+}
+},2000);
+
+// SERVICE WORKER
+if('serviceWorker' in navigator){
+navigator.serviceWorker.register('service-worker.js');
+}
+
+init();
+</script>
+
 </body>
 </html>
