@@ -5,93 +5,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>YLG Tracker</title>
 
-<!-- PWA -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0f172a">
 
-<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body{
-margin:0;
-font-family:sans-serif;
-background:#0f172a;
-color:#fff;
-}
-
-.header{
-padding:15px;
-text-align:center;
-font-size:20px;
-background:#020617;
-}
-
-.card{
-background:#1e293b;
-margin:10px;
-padding:15px;
-border-radius:12px;
-}
-
-input,select{
-width:100%;
-padding:10px;
-margin:5px 0;
-border:none;
-border-radius:8px;
-}
-
-button{
-width:100%;
-padding:12px;
-border:none;
-border-radius:10px;
-background:#f59e0b;
-color:#000;
-font-weight:bold;
-}
-
-.nav{
-position:fixed;
-bottom:0;
-width:100%;
-display:flex;
-background:#020617;
-}
-
-.nav div{
-flex:1;
-text-align:center;
-padding:12px;
-cursor:pointer;
-}
-
+body{margin:0;font-family:sans-serif;background:#0f172a;color:#fff}
+.header{padding:15px;text-align:center;font-size:20px;background:#020617}
+.card{background:#1e293b;margin:10px;padding:15px;border-radius:12px}
+input,select{width:100%;padding:10px;margin:5px 0;border:none;border-radius:8px}
+button{width:100%;padding:12px;border:none;border-radius:10px;background:#f59e0b;color:#000;font-weight:bold}
+.nav{position:fixed;bottom:0;width:100%;display:flex;background:#020617}
+.nav div{flex:1;text-align:center;padding:12px;cursor:pointer}
 .section{display:none;padding-bottom:70px}
 .show{display:block}
-
 .profit{color:#22c55e}
 .loss{color:#ef4444}
+
+/* Splash */
+#splash{
+position:fixed;top:0;left:0;width:100%;height:100%;
+background:#0f172a;display:flex;justify-content:center;align-items:center;
+font-size:40px;font-weight:bold;z-index:9999;
+animation:fadeOut 2s forwards 2s;
+}
+@keyframes fadeOut{to{opacity:0;visibility:hidden}}
 </style>
 </head>
 
 <body>
 
+<!-- Splash -->
+<div id="splash">YLG</div>
+
 <div class="header">YLG Tracker</div>
 
 <!-- HOME -->
 <div id="home" class="section show">
-<div class="card">
-<div id="stats"></div>
-</div>
-
-<div class="card">
-<canvas id="chart1"></canvas>
-</div>
-
-<div class="card">
-<canvas id="chart2"></canvas>
-</div>
+<div class="card"><div id="stats"></div></div>
+<div class="card"><canvas id="chart1"></canvas></div>
+<div class="card"><canvas id="chart2"></canvas></div>
 </div>
 
 <!-- ADD -->
@@ -117,6 +71,8 @@ cursor:pointer;
 <select id="filter" onchange="render()"></select>
 <button onclick="exportAll()">Export All</button>
 <button onclick="exportOne()">Export Selected</button>
+<button onclick="backupData()">Backup</button>
+<input type="file" onchange="restoreData(event)">
 </div>
 <div class="card" id="logs"></div>
 </div>
@@ -128,15 +84,21 @@ cursor:pointer;
 <div onclick="show('logsPage')">📜</div>
 </div>
 
+<!-- INSTALL MODAL -->
+<div id="installModal" style="display:none;position:fixed;bottom:20px;left:10px;right:10px;background:#1e293b;padding:15px;border-radius:12px;">
+<b>Install App</b>
+<p>Add to home screen</p>
+<button onclick="installApp()">Install</button>
+</div>
+
 <script>
 
 // ===== STORAGE =====
 function getData(){
-return JSON.parse(localStorage.getItem("ylg_data")||'{"games":[],"logs":[]}');
+try{return JSON.parse(localStorage.getItem("ylg_data"))||{games:[],logs:[]}}
+catch{return {games:[],logs:[]}}
 }
-function saveData(d){
-localStorage.setItem("ylg_data",JSON.stringify(d));
-}
+function saveData(d){localStorage.setItem("ylg_data",JSON.stringify(d))}
 
 // ===== NAV =====
 function show(id){
@@ -146,15 +108,14 @@ document.getElementById(id).classList.add("show");
 
 // ===== GAME =====
 let currentGame="";
-
 function handleGame(){
 let name=document.getElementById("search").value.trim();
-if(!name) return alert("Enter game name");
+if(!name)return alert("Enter game");
 
 let data=getData();
 
 if(!data.games.includes(name)){
-if(confirm("Game not found. Add new?")){
+if(confirm("Add new game?")){
 data.games.push(name);
 saveData(data);
 }
@@ -168,21 +129,19 @@ updateFilter();
 // ===== SAVE =====
 function saveEntry(){
 let data=getData();
+let date=document.getElementById("date").value;
+if(!date)return alert("Select date");
 
-let entry={
+data.logs.unshift({
 game:currentGame,
-date:document.getElementById("date").value,
-vip:document.getElementById("vip").value,
-bal:+document.getElementById("bal").value||0,
-with:+document.getElementById("with").value||0,
-ref:document.getElementById("ref").value
-};
+date:date,
+vip:vip.value||0,
+bal:+bal.value||0,
+with:+with.value||0,
+ref:ref.value||0
+});
 
-if(!entry.date) return alert("Select date");
-
-data.logs.unshift(entry);
 saveData(data);
-
 alert("Saved!");
 render();
 }
@@ -194,12 +153,11 @@ function render(){
 let data=getData();
 let filter=document.getElementById("filter").value;
 
-let html="";
-let totalBal=0,totalWith=0;
+let html="",totalBal=0,totalWith=0;
 let gameProfit={},dateProfit={};
 
 data.logs.forEach(l=>{
-if(filter && l.game!==filter) return;
+if(filter && l.game!==filter)return;
 
 let p=l.with-l.bal;
 
@@ -220,59 +178,85 @@ VIP ${l.vip}<br>
 </div>`;
 });
 
-document.getElementById("logs").innerHTML=html||"No Data";
+logs.innerHTML=html||"No Data";
 
-// STATS
+// stats
 let net=totalWith-totalBal;
+stats.innerHTML=`Balance ₹${totalBal}<br>Withdraw ₹${totalWith}<br><b class="${net>=0?'profit':'loss'}">₹${net}</b>`;
 
-document.getElementById("stats").innerHTML=
-`Balance ₹${totalBal}<br>Withdraw ₹${totalWith}<br><b class="${net>=0?'profit':'loss'}">₹${net}</b>`;
-
-// CHART FIX
-if(chart1) chart1.destroy();
-chart1=new Chart(document.getElementById("chart1"),{
+// charts
+if(typeof Chart!=="undefined"){
+if(chart1)chart1.destroy();
+chart1=new Chart(chart1Canvas,{
 type:"line",
-data:{
-labels:Object.keys(dateProfit),
-datasets:[{label:"Profit Trend",data:Object.values(dateProfit)}]
-}
+data:{labels:Object.keys(dateProfit),datasets:[{data:Object.values(dateProfit)}]}
 });
 
-if(chart2) chart2.destroy();
-chart2=new Chart(document.getElementById("chart2"),{
+if(chart2)chart2.destroy();
+chart2=new Chart(chart2Canvas,{
 type:"bar",
-data:{
-labels:Object.keys(gameProfit),
-datasets:[{label:"Game Profit",data:Object.values(gameProfit)}]
-}
+data:{labels:Object.keys(gameProfit),datasets:[{data:Object.values(gameProfit)}]}
 });
+}
 
 updateFilter();
 }
 
 // ===== FILTER =====
 function updateFilter(){
-let games=getData().games;
-let f=document.getElementById("filter");
-
-f.innerHTML='<option value="">All</option>'+games.map(g=>`<option>${g}</option>`).join("");
+let g=getData().games;
+filter.innerHTML='<option value="">All</option>'+g.map(x=>`<option>${x}</option>`).join("");
 }
 
 // ===== EXPORT =====
 function exportAll(){download(getData().logs,"all.csv")}
 function exportOne(){
-let f=document.getElementById("filter").value;
-download(getData().logs.filter(l=>l.game===f),f+".csv");
+let f=filter.value;
+download(getData().logs.filter(x=>x.game===f),f+".csv")
 }
 
 function download(data,file){
 let csv="Game,Date,VIP,Bal,With,Ref\n";
 data.forEach(d=>csv+=`${d.game},${d.date},${d.vip},${d.bal},${d.with},${d.ref}\n`);
-
 let a=document.createElement("a");
 a.href=URL.createObjectURL(new Blob([csv]));
 a.download=file;
 a.click();
+}
+
+// ===== BACKUP =====
+function backupData(){
+let blob=new Blob([JSON.stringify(getData())]);
+let a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="backup.json";
+a.click();
+}
+
+function restoreData(e){
+let r=new FileReader();
+r.onload=()=>{
+localStorage.setItem("ylg_data",r.result);
+alert("Restored!");
+location.reload();
+};
+r.readAsText(e.target.files[0]);
+}
+
+// ===== INSTALL =====
+let deferredPrompt;
+window.addEventListener("beforeinstallprompt",e=>{
+e.preventDefault();
+deferredPrompt=e;
+installModal.style.display="block";
+});
+
+function installApp(){
+if(deferredPrompt){
+deferredPrompt.prompt();
+deferredPrompt=null;
+installModal.style.display="none";
+}
 }
 
 // ===== SERVICE WORKER =====
@@ -281,7 +265,10 @@ navigator.serviceWorker.register("service-worker.js");
 }
 
 // ===== INIT =====
-render();
+window.onload=render;
+
+const chart1Canvas=document.getElementById("chart1");
+const chart2Canvas=document.getElementById("chart2");
 
 </script>
 
