@@ -1,300 +1,458 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>YLG Tracker</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>YLG Tracker Pro</title>
 
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<style>
-body{margin:0;font-family:sans-serif;background:#0f172a;color:#fff}
-.header{padding:15px;text-align:center;font-size:20px;background:#020617}
-.card{background:#1e293b;margin:10px;padding:15px;border-radius:12px}
-input,select{width:100%;padding:10px;margin:5px 0;border:none;border-radius:8px}
-button{width:100%;padding:12px;border:none;border-radius:10px;background:#f59e0b;color:#000;font-weight:bold}
-.nav{position:fixed;bottom:0;width:100%;display:flex;background:#020617}
-.nav div{flex:1;text-align:center;padding:12px;cursor:pointer}
-.section{display:none;padding-bottom:70px}
-.show{display:block}
-.profit{color:#22c55e}
-.loss{color:#ef4444}
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --header: #020617;
+            --accent: #f59e0b;
+            --text: #f8fafc;
+            --success: #22c55e;
+            --danger: #ef4444;
+        }
 
-/* Splash */
-#splash{
-position:fixed;top:0;left:0;width:100%;height:100%;
-background:#0f172a;display:flex;justify-content:center;align-items:center;
-font-size:40px;font-weight:bold;z-index:9999;
-animation:fadeOut 2s forwards 2s;
-}
-@keyframes fadeOut{to{opacity:0;visibility:hidden}}
-</style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .header {
+            padding: 18px;
+            text-align: center;
+            font-size: 22px;
+            font-weight: 800;
+            background: var(--header);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .card {
+            background: var(--card);
+            margin: 12px;
+            padding: 16px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            background: #0f172a;
+            color: #fff;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: var(--accent);
+            color: #000;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            margin-top: 10px;
+        }
+
+        button:active { opacity: 0.8; }
+
+        .secondary-btn {
+            background: #334155;
+            color: #fff;
+        }
+
+        .nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            display: flex;
+            background: var(--header);
+            border-top: 1px solid #1e293b;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .nav div {
+            flex: 1;
+            text-align: center;
+            padding: 15px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .section { display: none; padding-bottom: 85px; animation: fadeIn 0.3s ease; }
+        .show { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .profit { color: var(--success); }
+        .loss { color: var(--danger); }
+
+        /* Splash Screen */
+        #splash {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg); display: flex; justify-content: center; align-items: center;
+            font-size: 48px; font-weight: 900; z-index: 9999;
+            animation: fadeOut 1s forwards 2.5s;
+        }
+
+        @keyframes fadeOut { to { opacity: 0; visibility: hidden; } }
+
+        .log-item {
+            border-bottom: 1px solid #334155;
+            padding: 12px 0;
+            position: relative;
+        }
+
+        .del-btn {
+            position: absolute; right: 0; top: 12px;
+            background: #450a0a; color: #f87171;
+            width: auto; padding: 4px 10px; font-size: 12px;
+        }
+
+        canvas { max-width: 100% !important; margin-top: 10px; }
+    </style>
 </head>
-
 <body>
 
 <div id="splash">YLG</div>
 
 <div class="header">YLG Tracker</div>
 
-<!-- HOME -->
 <div id="home" class="section show">
-<div class="card"><div id="stats"></div></div>
-<div class="card"><canvas id="chart1"></canvas></div>
-<div class="card"><canvas id="chart2"></canvas></div>
+    <div class="card">
+        <div id="stats">Calculating...</div>
+    </div>
+    <div class="card">
+        <canvas id="chart1"></canvas>
+    </div>
+    <div class="card">
+        <canvas id="chart2"></canvas>
+    </div>
 </div>
 
-<!-- ADD -->
 <div id="add" class="section">
-<div class="card">
-<input id="gameInput" placeholder="Enter Game Name">
-<button onclick="handleGame()">Continue</button>
+    <div class="card">
+        <h3 style="margin-top:0">Add New Entry</h3>
+        <input id="gameInput" placeholder="Enter Game Name (e.g. Aviator)" list="gameList">
+        <datalist id="gameList"></datalist>
+        <button onclick="handleGame()">Continue</button>
+    </div>
+
+    <div class="card" id="entryBox" style="display:none;">
+        <label>Date</label>
+        <input type="date" id="date">
+        <input type="number" id="vip" placeholder="VIP Level">
+        <input type="number" id="balance" placeholder="Recharge / Starting Balance">
+        <input type="number" id="withdraw" placeholder="Withdrawal Amount">
+        <input type="number" id="refer" placeholder="Referral Earnings">
+        <button onclick="saveEntry()">Save Record</button>
+    </div>
 </div>
 
-<div class="card" id="entryBox" style="display:none;">
-<input type="date" id="date">
-<input type="number" id="vip" placeholder="VIP Level">
-<input type="number" id="balance" placeholder="Balance">
-<input type="number" id="withdraw" placeholder="Withdraw">
-<input type="number" id="refer" placeholder="Refer Count">
-<button onclick="saveEntry()">Save Entry</button>
-</div>
-</div>
-
-<!-- LOGS -->
 <div id="logsPage" class="section">
-<div class="card">
-<select id="filter" onchange="render()"></select>
-<button onclick="exportAll()">Export All</button>
-<button onclick="exportOne()">Export Selected</button>
-<button onclick="backupData()">Backup</button>
-<input type="file" onchange="restoreData(event)">
-</div>
-<div class="card" id="logs"></div>
+    <div class="card">
+        <select id="filter" onchange="render()"></select>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button class="secondary-btn" onclick="exportOne()">Export Filtered</button>
+            <button class="secondary-btn" onclick="exportAll()">Export All CSV</button>
+        </div>
+        <button class="secondary-btn" onclick="backupData()">Download JSON Backup</button>
+        <p style="font-size: 12px; text-align: center; color: #94a3b8;">Restore from file:</p>
+        <input type="file" onchange="restoreData(event)" style="font-size: 12px;">
+    </div>
+    <div class="card" id="logs"></div>
 </div>
 
-<!-- NAV -->
 <div class="nav">
-<div onclick="showPage('home')">🏠</div>
-<div onclick="showPage('add')">➕</div>
-<div onclick="showPage('logsPage')">📜</div>
+    <div onclick="showPage('home')">🏠</div>
+    <div onclick="showPage('add')">➕</div>
+    <div onclick="showPage('logsPage')">📜</div>
 </div>
 
-<!-- INSTALL -->
-<div id="installModal" style="display:none;position:fixed;bottom:20px;left:10px;right:10px;background:#1e293b;padding:15px;border-radius:12px;">
-<b>Install App</b>
-<p>Add to home screen</p>
-<button onclick="installApp()">Install</button>
+<div id="installModal" style="display:none; position:fixed; bottom:90px; left:20px; right:20px; background:var(--card); padding:20px; border-radius:16px; border: 2px solid var(--accent); z-index: 1000;">
+    <b style="font-size:18px">Install YLG Tracker</b>
+    <p style="margin: 10px 0; color: #94a3b8;">Add this app to your home screen for quick access.</p>
+    <button onclick="installApp()">Install Now</button>
+    <button class="secondary-btn" onclick="document.getElementById('installModal').style.display='none'">Later</button>
 </div>
 
 <script>
+// ===== CORE STORAGE =====
+const STORAGE_KEY = "ylg_pro_data";
 
-// ===== STORAGE =====
-const STORAGE_KEY = "ylg_data";
-
-function getData(){
-try{return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {games:[],logs:[]}}
-catch{return {games:[],logs:[]}}
+function getData() {
+    try {
+        const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        return data || { games: [], logs: [] };
+    } catch (e) {
+        return { games: [], logs: [] };
+    }
 }
 
-function saveData(data){
-localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+function saveData(data) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
 // ===== NAVIGATION =====
-function showPage(id){
-document.querySelectorAll(".section").forEach(s=>s.classList.remove("show"));
-document.getElementById(id).classList.add("show");
+function showPage(id) {
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("show"));
+    document.getElementById(id).classList.add("show");
+    window.scrollTo(0,0);
+    if (id === 'home' || id === 'logsPage') render();
 }
 
-// ===== GAME HANDLING =====
-let currentGame="";
+// Cleanup Splash
+setTimeout(() => {
+    const splash = document.getElementById("splash");
+    if (splash) splash.remove();
+}, 3500);
 
-function handleGame(){
-let name=document.getElementById("gameInput").value.trim();
-if(!name)return alert("Enter game name");
+// ===== LOGIC =====
+let currentGame = "";
 
-let data=getData();
+function handleGame() {
+    const input = document.getElementById("gameInput");
+    const name = input.value.trim();
+    if (!name) return alert("Please enter or select a game.");
 
-if(!data.games.includes(name)){
-if(confirm("Game not found. Add new?")){
-data.games.push(name);
-saveData(data);
-}
-}
+    let data = getData();
+    if (!data.games.includes(name)) {
+        if (confirm(`Create new category for "${name}"?`)) {
+            data.games.push(name);
+            saveData(data);
+            updateFilter();
+        } else return;
+    }
 
-currentGame=name;
-document.getElementById("entryBox").style.display="block";
-updateFilter();
-}
-
-// ===== SAVE ENTRY =====
-function saveEntry(){
-let data=getData();
-
-let entry={
-game:currentGame,
-date:document.getElementById("date").value,
-vip:Number(document.getElementById("vip").value)||0,
-balance:Number(document.getElementById("balance").value)||0,
-withdraw:Number(document.getElementById("withdraw").value)||0,
-refer:Number(document.getElementById("refer").value)||0
-};
-
-if(!entry.date)return alert("Select date");
-
-data.logs.unshift(entry);
-saveData(data);
-
-alert("Saved successfully");
-render();
+    currentGame = name;
+    document.getElementById("entryBox").style.display = "block";
+    document.getElementById("date").valueAsDate = new Date();
 }
 
-// ===== RENDER =====
-let chart1,chart2;
+function saveEntry() {
+    let data = getData();
+    const entry = {
+        id: Date.now(),
+        game: currentGame,
+        date: document.getElementById("date").value,
+        vip: Number(document.getElementById("vip").value) || 0,
+        balance: Number(document.getElementById("balance").value) || 0,
+        withdraw: Number(document.getElementById("withdraw").value) || 0,
+        refer: Number(document.getElementById("refer").value) || 0
+    };
 
-function render(){
-let data=getData();
-let selectedGame=document.getElementById("filter").value;
+    if (!entry.date) return alert("Date is required");
 
-let html="";
-let totalBalance=0,totalWithdraw=0;
-let gameProfit={},dateProfit={};
+    data.logs.unshift(entry);
+    saveData(data);
 
-data.logs.forEach(log=>{
-if(selectedGame && log.game!==selectedGame) return;
-
-let profit=log.withdraw-log.balance;
-
-totalBalance+=log.balance;
-totalWithdraw+=log.withdraw;
-
-gameProfit[log.game]=(gameProfit[log.game]||0)+profit;
-dateProfit[log.date]=(dateProfit[log.date]||0)+profit;
-
-html+=`
-<div>
-<b>${log.game}</b><br>
-${log.date}<br>
-VIP ${log.vip}<br>
-₹${log.balance} → ₹${log.withdraw}<br>
-<span class="${profit>=0?'profit':'loss'}">₹${profit}</span>
-<hr>
-</div>`;
-});
-
-document.getElementById("logs").innerHTML=html||"No Data";
-
-// DASHBOARD
-let net=totalWithdraw-totalBalance;
-
-document.getElementById("stats").innerHTML=
-`Balance ₹${totalBalance}<br>
-Withdraw ₹${totalWithdraw}<br>
-<b class="${net>=0?'profit':'loss'}">Net ₹${net}</b>`;
-
-// CHARTS
-if(typeof Chart!=="undefined"){
-if(chart1) chart1.destroy();
-chart1=new Chart(document.getElementById("chart1"),{
-type:"line",
-data:{labels:Object.keys(dateProfit),
-datasets:[{label:"Profit Trend",data:Object.values(dateProfit)}]}
-});
-
-if(chart2) chart2.destroy();
-chart2=new Chart(document.getElementById("chart2"),{
-type:"bar",
-data:{labels:Object.keys(gameProfit),
-datasets:[{label:"Game Profit",data:Object.values(gameProfit)}]}
-});
+    alert("Record Saved!");
+    document.getElementById("entryBox").style.display = "none";
+    document.getElementById("gameInput").value = "";
+    showPage('home');
 }
 
-updateFilter();
+function deleteLog(id) {
+    if (!confirm("Are you sure you want to delete this record?")) return;
+    let data = getData();
+    data.logs = data.logs.filter(l => l.id !== id);
+    saveData(data);
+    render();
 }
 
-// ===== FILTER =====
-function updateFilter(){
-let games=getData().games;
-let dropdown=document.getElementById("filter");
+// ===== RENDER & VISUALS =====
+let chart1, chart2;
 
-dropdown.innerHTML='<option value="">All Games</option>'+
-games.map(g=>`<option>${g}</option>`).join("");
+function render() {
+    const data = getData();
+    const filterVal = document.getElementById("filter").value;
+    
+    let html = "";
+    let totalIn = 0, totalOut = 0;
+    let gameProfit = {}, dateProfit = {};
+
+    data.logs.forEach(log => {
+        if (filterVal && log.game !== filterVal) return;
+
+        const profit = log.withdraw - log.balance;
+        totalIn += log.balance;
+        totalOut += log.withdraw;
+
+        gameProfit[log.game] = (gameProfit[log.game] || 0) + profit;
+        dateProfit[log.date] = (dateProfit[log.date] || 0) + profit;
+
+        html += `
+            <div class="log-item">
+                <button class="del-btn" onclick="deleteLog(${log.id})">Delete</button>
+                <div style="font-weight:bold; color:var(--accent)">${log.game}</div>
+                <div style="font-size:13px; color:#94a3b8">${log.date} • VIP ${log.vip}</div>
+                <div style="display:flex; justify-content:space-between; margin-top:5px">
+                    <span>In: ₹${log.balance} → Out: ₹${log.withdraw}</span>
+                    <span class="${profit >= 0 ? 'profit' : 'loss'}" style="font-weight:bold">
+                        ${profit >= 0 ? '+' : ''}₹${profit}
+                    </span>
+                </div>
+            </div>`;
+    });
+
+    document.getElementById("logs").innerHTML = html || "<p style='text-align:center'>No data found.</p>";
+    
+    const net = totalOut - totalIn;
+    document.getElementById("stats").innerHTML = `
+        <div style="text-align:center; font-size:14px; color:#94a3b8; margin-bottom:5px">NET PROFIT/LOSS</div>
+        <div class="${net >= 0 ? 'profit' : 'loss'}" style="text-align:center; font-size:28px; font-weight:900">
+            ₹${net}
+        </div>
+        <div style="display:flex; justify-content:space-around; margin-top:15px; border-top:1px solid #334155; padding-top:10px">
+            <div style="text-align:center"><small>TOTAL IN</small><br>₹${totalIn}</div>
+            <div style="text-align:center"><small>TOTAL OUT</small><br>₹${totalOut}</div>
+        </div>`;
+
+    if (window.Chart) {
+        const sortedDates = Object.keys(dateProfit).sort((a,b) => new Date(a) - new Date(b));
+        const trendData = sortedDates.map(d => dateProfit[d]);
+
+        if (chart1) chart1.destroy();
+        chart1 = new Chart(document.getElementById("chart1"), {
+            type: 'line',
+            data: {
+                labels: sortedDates,
+                datasets: [{
+                    label: 'Profit Trend',
+                    data: trendData,
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: { plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#334155' } } } }
+        });
+
+        if (chart2) chart2.destroy();
+        chart2 = new Chart(document.getElementById("chart2"), {
+            type: 'bar',
+            data: {
+                labels: Object.keys(gameProfit),
+                datasets: [{
+                    label: 'By Game',
+                    data: Object.values(gameProfit),
+                    backgroundColor: '#38bdf8'
+                }]
+            },
+            options: { plugins: { legend: { display: false } } }
+        });
+    }
 }
 
-// ===== EXPORT =====
-function exportAll(){
-downloadCSV(getData().logs,"all_data.csv");
+function updateFilter() {
+    const dropdown = document.getElementById("filter");
+    const list = document.getElementById("gameList");
+    const current = dropdown.value;
+    const games = getData().games;
+
+    let options = '<option value="">All Games</option>';
+    let datalist = '';
+    
+    games.forEach(g => {
+        options += `<option value="${g}" ${g === current ? 'selected' : ''}>${g}</option>`;
+        datalist += `<option value="${g}">`;
+    });
+    
+    dropdown.innerHTML = options;
+    list.innerHTML = datalist;
 }
 
-function exportOne(){
-let game=document.getElementById("filter").value;
-if(!game)return alert("Select a game");
-
-let logs=getData().logs.filter(l=>l.game===game);
-downloadCSV(logs,game+"_data.csv");
+// ===== DATA HANDLING =====
+function downloadCSV(data, filename) {
+    let csv = "Game,Date,VIP,Balance,Withdraw,Refer\n";
+    data.forEach(d => {
+        csv += `"${d.game}",${d.date},${d.vip},${d.balance},${d.withdraw},${d.refer}\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
 }
 
-function downloadCSV(data,fileName){
-let csv="Game,Date,VIP,Balance,Withdraw,Refer\n";
-data.forEach(d=>{
-csv+=`${d.game},${d.date},${d.vip},${d.balance},${d.withdraw},${d.refer}\n`;
-});
-
-let blob=new Blob([csv]);
-let a=document.createElement("a");
-a.href=URL.createObjectURL(blob);
-a.download=fileName;
-a.click();
+function exportAll() { downloadCSV(getData().logs, "ylg_all_data.csv"); }
+function exportOne() {
+    const g = document.getElementById("filter").value;
+    if (!g) return alert("Select a game first");
+    downloadCSV(getData().logs.filter(l => l.game === g), `${g}_data.csv`);
 }
 
-// ===== BACKUP =====
-function backupData(){
-let blob=new Blob([JSON.stringify(getData())]);
-let a=document.createElement("a");
-a.href=URL.createObjectURL(blob);
-a.download="backup.json";
-a.click();
+function backupData() {
+    const blob = new Blob([JSON.stringify(getData())], { type: 'application/json' });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `ylg_backup_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
 }
 
-function restoreData(e){
-let reader=new FileReader();
-reader.onload=()=>{
-localStorage.setItem(STORAGE_KEY, reader.result);
-alert("Data Restored!");
-location.reload();
-};
-reader.readAsText(e.target.files[0]);
+function restoreData(e) {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        try {
+            const json = JSON.parse(ev.target.result);
+            if(json.logs) {
+                saveData(json);
+                alert("Data Restored!");
+                location.reload();
+            }
+        } catch(err) { alert("Invalid file."); }
+    };
+    reader.readAsText(e.target.files[0]);
 }
 
-// ===== INSTALL =====
+// ===== PWA INSTALL =====
 let deferredPrompt;
-window.addEventListener("beforeinstallprompt",e=>{
-e.preventDefault();
-deferredPrompt=e;
-document.getElementById("installModal").style.display="block";
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('installModal').style.display = 'block';
 });
 
-function installApp(){
-if(deferredPrompt){
-deferredPrompt.prompt();
-deferredPrompt=null;
-document.getElementById("installModal").style.display="none";
-}
-}
-
-// ===== SERVICE WORKER =====
-if("serviceWorker" in navigator){
-navigator.serviceWorker.register("service-worker.js");
+function installApp() {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt = null;
+        document.getElementById('installModal').style.display = 'none';
+    }
 }
 
 // ===== INIT =====
-window.onload=render;
-
+window.onload = () => {
+    updateFilter();
+    render();
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+    }
+};
 </script>
-
 </body>
 </html>
