@@ -162,19 +162,29 @@ async function autoSync() {
 }
 
 async function syncToCloud() {
-    if (!navigator.onLine) return alert("Offline. Cannot sync.");
+    if (!navigator.onLine) return alert("Cannot sync while offline.");
     const btn = document.getElementById("uploadBtn");
     btn.innerText = "Syncing...";
     try {
-        let d = getData();
-        d.lastSync = new Date().toLocaleString();
-        await fetch(CLOUD_URL, { method: "POST", body: JSON.stringify(d) });
-        saveData(d);
-        alert("Synced to Google Sheets!");
+        let data = getData();
+        data.lastSync = new Date().toLocaleString();
+        
+        await fetch(CLOUD_URL, { 
+            method: "POST", 
+            body: JSON.stringify(data),
+            mode: 'no-cors', // This bypasses most CORS/Security errors with Google
+            headers: { 'Content-Type': 'text/plain' } 
+        });
+
+        saveData(data);
+        alert("Sync Request Sent! Check your Google Sheet in a few seconds.");
         render();
-    } catch (e) { alert("Sync Error."); }
+    } catch (e) { 
+        alert("Sync Error: " + e.message); 
+    }
     btn.innerText = "⬆ Upload";
 }
+
 
 async function syncFromCloud() {
     if(!confirm("Overwrite local data with Cloud?")) return;
