@@ -1,9 +1,15 @@
 {
   "short_name": "YLG Tracker",
   "name": "YLG Pro Profit Tracker",
+  "description": "Professional Game Profit and Referral Tracker",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/10433/10433048.png",
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
@@ -11,6 +17,8 @@
   ],
   "start_url": "./index.html",
   "display": "standalone",
-  "theme_color": "#0f172a",
-  "background_color": "#0f172a"
+  "theme_color": "#020617",
+  "background_color": "#0f172a",
+  "orientation": "portrait",
+  "scope": "/"
 }
