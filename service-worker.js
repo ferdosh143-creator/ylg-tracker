@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ylg-v1'; // Change to v2, v3 etc. to force user update
+const CACHE_NAME = 'ylg-v2'; // Change to v2, v3 etc. to force user update
 const ASSETS = [
   './',
   './index.html',
