@@ -5,157 +5,103 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>YLG Tracker Pro</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0f172a">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#020617">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        :root { 
-            --bg: #0f172a; 
-            --card: #1e293b; 
-            --header: #020617; 
-            --accent: #f59e0b; 
-            --text: #f8fafc; 
-            --success: #22c55e; 
-            --danger: #ef4444; 
-        }
-        body { 
-            margin: 0; 
-            font-family: -apple-system, sans-serif; 
-            background: var(--bg); 
-            color: var(--text); 
-            padding-bottom: 110px; 
-        }
-        .header { 
-            padding: 20px; 
-            text-align: center; 
-            font-size: 22px; 
-            font-weight: 800; 
-            background: var(--header); 
-            position: sticky; 
-            top: 0; 
-            z-index: 100; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        }
-        .card { 
-            background: var(--card); 
-            margin: 12px; 
-            padding: 18px; 
-            border-radius: 20px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
-        }
-        input, select { 
-            width: 100%; 
-            padding: 14px; 
-            margin: 8px 0; 
-            border: 1px solid #334155; 
-            border-radius: 12px; 
-            background: #0f172a; 
-            color: #fff; 
-            box-sizing: border-box; 
-            font-size: 16px; 
-        }
-        button { 
-            width: 100%; 
-            padding: 16px; 
-            border: none; 
-            border-radius: 14px; 
-            background: var(--accent); 
-            color: #000; 
-            font-weight: bold; 
-            font-size: 16px;
-            cursor: pointer; 
-            margin-top: 10px; 
-        }
-        .secondary-btn { background: #334155; color: #fff; }
-        .sync-btn { background: #22c55e; color: #fff; margin-top: 5px; }
-        .danger-btn { background: #7f1d1d; color: #fca5a5; }
+        :root { --bg: #0f172a; --card: #1e293b; --header: #020617; --accent: #f59e0b; --text: #f8fafc; --success: #22c55e; --danger: #ef4444; }
+        body { margin: 0; font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding-bottom: 110px; overflow-x: hidden; }
+        
+        .header { padding: 20px; text-align: center; font-size: 22px; font-weight: 800; background: var(--header); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; }
+        .card { background: var(--card); margin: 12px; padding: 18px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        
+        #networkStatus { font-size: 11px; padding: 5px 12px; border-radius: 20px; font-weight: bold; text-transform: uppercase; }
+        .online { background: #064e3b; color: #6ee7b7; }
+        .offline { background: #7f1d1d; color: #fca5a5; }
 
-        .nav { 
-            position: fixed; 
-            bottom: 0; 
-            width: 100%; 
-            display: flex; 
-            background: var(--header); 
-            border-top: 1px solid #1e293b; 
-            padding-bottom: env(safe-area-inset-bottom); 
-            z-index: 100;
-        }
-        .nav div { 
-            flex: 1; 
-            text-align: center; 
-            padding: 22px; 
-            font-size: 34px; /* Big Icons */
-            cursor: pointer; 
-        }
+        input, select { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #334155; border-radius: 12px; background: #0f172a; color: #fff; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 16px; border: none; border-radius: 14px; background: var(--accent); color: #000; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        button:active { transform: scale(0.98); }
+        .secondary-btn { background: #334155; color: #fff; }
+        .sync-btn { background: #22c55e; color: #fff; }
+
+        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: var(--header); border-top: 1px solid #1e293b; padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
+        .nav div { flex: 1; text-align: center; padding: 22px; font-size: 34px; cursor: pointer; color: #94a3b8; }
+        .nav .active { color: var(--accent); }
+
+        .toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #3b82f6; color: white; padding: 15px; border-radius: 12px; z-index: 1000; display: none; box-shadow: 0 10px 20px rgba(0,0,0,0.5); width: 85%; text-align: center; font-weight: bold; }
+        .alert-box { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); width: 85%; background: #ef4444; color: white; padding: 15px; border-radius: 12px; z-index: 1000; display: none; text-align: center; font-size: 14px; }
+
         .section { display: none; animation: fadeIn 0.4s ease; }
         .show { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .profit { color: var(--success); font-weight: bold; } 
-        .loss { color: var(--danger); font-weight: bold; }
-        
         .log-item { border-bottom: 1px solid #334155; padding: 15px 0; position: relative; }
         .del-btn { position: absolute; right: 0; top: 15px; background: #450a0a; color: #f87171; width: auto; padding: 5px 12px; font-size: 12px; border-radius: 8px; }
-        
         .manage-row { display: flex; gap: 10px; margin-top: 10px; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 10px; }
-        .manage-row button { width: auto; padding: 8px 15px; font-size: 12px; margin: 0; }
+        .manage-row button { width: auto; padding: 8px 12px; font-size: 11px; margin: 0; }
 
-        #splash { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: var(--bg); display: flex; justify-content: center; align-items: center; 
-            font-size: 54px; font-weight: 900; z-index: 9999; 
-            animation: fadeOut 1s forwards 1.5s; 
-        }
+        #splash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--header); display: flex; justify-content: center; align-items: center; font-size: 54px; font-weight: 900; z-index: 9999; animation: fadeOut 1s forwards 1.5s; }
         @keyframes fadeOut { to { opacity: 0; visibility: hidden; } }
     </style>
 </head>
 <body>
 
 <div id="splash">YLG</div>
-<div class="header">YLG Tracker</div>
+
+<div class="header">
+    <span>YLG Tracker</span>
+    <div id="networkStatus" class="online">ONLINE</div>
+</div>
+
+<div id="updateToast" class="toast">
+    New Update Available! 
+    <button onclick="window.location.reload()" style="background:white; color:#3b82f6; width:auto; padding:5px 12px; margin-left:10px; font-size:12px; border-radius:8px;">REFRESH</button>
+</div>
+
+<div id="offlineAlert" class="alert-box">
+    ⚠️ <b>Offline Mode</b> - Data saving to phone. Sync when online.
+</div>
 
 <div id="home" class="section show">
     <div class="card"><div id="stats">Analyzing Data...</div></div>
     <div class="card"><canvas id="chart1"></canvas></div>
     <div class="card"><canvas id="chart2"></canvas></div>
+    <div class="card" style="text-align:center">
+        <button class="secondary-btn" onclick="forceUpdateCheck()">Check for App Update</button>
+    </div>
 </div>
 
 <div id="add" class="section">
     <div class="card">
-        <h3 style="margin:0 0 10px 0; color:var(--accent)">1. Game Setup</h3>
-        <input id="gameInput" placeholder="Enter or Select Game" list="gameList">
+        <h3 style="margin:0 0 10px 0; color:var(--accent)">Add Record</h3>
+        <input id="gameInput" placeholder="Game Name" list="gameList">
         <datalist id="gameList"></datalist>
-        <button onclick="handleGame()">Proceed to Entry</button>
-        
-        <div id="manageGamesList" style="margin-top:25px; border-top:2px solid #334155; padding-top:15px">
-            <p style="font-size:12px; color:#94a3b8; margin-bottom:10px">Manage Games List:</p>
-        </div>
+        <button onclick="handleGame()">Continue</button>
+        <div id="manageGamesList" style="margin-top:20px; border-top:1px solid #334155; padding-top:15px"></div>
     </div>
 
     <div class="card" id="entryBox" style="display:none; border: 2px solid var(--accent)">
         <h3 id="currentSelectedGame" style="margin:0; color:var(--accent)"></h3>
-        <label style="font-size:12px; color:#94a3b8">Entry Date</label>
         <input type="date" id="date">
         <input type="number" id="vip" placeholder="VIP Level">
-        <input type="number" id="balance" placeholder="Recharge Amount (Inward)">
-        <input type="number" id="withdraw" placeholder="Withdrawal Amount (Outward)">
-        <input type="number" id="avail_bal" placeholder="Available Balance in App/Game">
-        <input type="number" id="refer" placeholder="Referral Count (Users)">
-        <button onclick="saveEntry()">Save Record</button>
+        <input type="number" id="balance" placeholder="Recharge Amount">
+        <input type="number" id="withdraw" placeholder="Withdrawal Amount">
+        <input type="number" id="avail_bal" placeholder="Wallet Balance">
+        <input type="number" id="refer" placeholder="Referral Count">
+        <button onclick="saveEntry()">Save Locally</button>
     </div>
 </div>
 
 <div id="logsPage" class="section">
     <div class="card" style="border: 1px dashed var(--success)">
-        <h3 style="margin-top:0">Cloud Sync</h3>
+        <h3 style="margin-top:0">Cloud Backup</h3>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-            <button class="sync-btn" onclick="syncToCloud()">⬆ Cloud Upload</button>
-            <button class="sync-btn" style="background:#3b82f6" onclick="syncFromCloud()">⬇ Cloud Download</button>
+            <button class="sync-btn" id="uploadBtn" onclick="syncToCloud()">⬆ Upload</button>
+            <button class="sync-btn" style="background:#3b82f6" onclick="syncFromCloud()">⬇ Download</button>
         </div>
-        <p id="syncStatus" style="font-size:11px; color:#94a3b8; text-align:center; margin-top:8px">Last Synced: Never</p>
+        <p id="syncStatus" style="font-size:11px; color:#94a3b8; text-align:center; margin-top:8px">Last Sync: Never</p>
     </div>
-
     <div class="card">
         <select id="filter" onchange="render()"></select>
         <button class="secondary-btn" onclick="exportAll()">Export Full CSV</button>
@@ -164,117 +110,105 @@
 </div>
 
 <div class="nav">
-    <div onclick="showPage('home')">🏠</div>
-    <div onclick="showPage('add')">➕</div>
-    <div onclick="showPage('logsPage')">📜</div>
+    <div id="nav-home" class="active" onclick="showPage('home')">🏠</div>
+    <div id="nav-add" onclick="showPage('add')">➕</div>
+    <div id="nav-logsPage" onclick="showPage('logsPage')">📜</div>
 </div>
 
 <script>
 // CONFIG
-const STORAGE_KEY = "ylg_pro_vfinal";
 const CLOUD_URL = "https://script.google.com/macros/s/AKfycbydT_3hzScqyjsSAGvbNu8THoEybafJkZaLKIU4ejdxiXJVrUWe6mddmXHALwQo4NpD/exec";
+const STORAGE_KEY = "ylg_pro_v_final_sync";
 
 let currentGame = "";
 let chart1, chart2;
 
-function getData() {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { games: [], logs: [], lastSync: "Never" };
-}
+// HELPERS
+const getData = () => JSON.parse(localStorage.getItem(STORAGE_KEY)) || { games: [], logs: [], lastSync: "Never" };
+const saveData = (d) => localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
 
-function saveData(data) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-
+// NAVIGATION
 function showPage(id) {
     document.querySelectorAll(".section").forEach(s => s.classList.remove("show"));
+    document.querySelectorAll(".nav div").forEach(n => n.classList.remove("active"));
     document.getElementById(id).classList.add("show");
+    document.getElementById("nav-" + id).classList.add("active");
     window.scrollTo(0,0);
     if (id === 'home' || id === 'logsPage') render();
     if (id === 'add') renderGameManager();
 }
 
-// CLOUD FUNCTIONS
-async function syncToCloud() {
-    const btn = event.target;
-    btn.innerText = "Uploading...";
+// NETWORK & AUTO-SYNC
+function updateStatus() {
+    const isOnline = navigator.onLine;
+    document.getElementById("networkStatus").innerText = isOnline ? "ONLINE" : "OFFLINE";
+    document.getElementById("networkStatus").className = isOnline ? "online" : "offline";
+    document.getElementById("offlineAlert").style.display = isOnline ? "none" : "block";
+    if (isOnline) autoSync();
+}
+window.addEventListener('online', updateStatus);
+window.addEventListener('offline', updateStatus);
+
+async function autoSync() {
+    if (!navigator.onLine || !CLOUD_URL) return;
     try {
-        let data = getData();
-        data.lastSync = new Date().toLocaleString();
-        await fetch(CLOUD_URL, { method: "POST", body: JSON.stringify(data) });
-        saveData(data);
-        alert("Sync Successful! Data is safe in Google Sheets.");
+        let d = getData();
+        if(d.logs.length === 0) return;
+        await fetch(CLOUD_URL, { method: "POST", mode: 'no-cors', body: JSON.stringify(d) });
+        d.lastSync = "Auto: " + new Date().toLocaleTimeString();
+        saveData(d);
         render();
-    } catch (e) { alert("Sync Error. Check your connection."); }
-    btn.innerText = "⬆ Cloud Upload";
+    } catch(e) {}
+}
+
+async function syncToCloud() {
+    if (!navigator.onLine) return alert("Offline. Cannot sync.");
+    const btn = document.getElementById("uploadBtn");
+    btn.innerText = "Syncing...";
+    try {
+        let d = getData();
+        d.lastSync = new Date().toLocaleString();
+        await fetch(CLOUD_URL, { method: "POST", body: JSON.stringify(d) });
+        saveData(d);
+        alert("Synced to Google Sheets!");
+        render();
+    } catch (e) { alert("Sync Error."); }
+    btn.innerText = "⬆ Upload";
 }
 
 async function syncFromCloud() {
-    if(!confirm("This will replace current logs with the cloud version. Continue?")) return;
-    const btn = event.target;
-    btn.innerText = "Downloading...";
+    if(!confirm("Overwrite local data with Cloud?")) return;
     try {
-        const response = await fetch(CLOUD_URL);
-        const cloudData = await response.json();
-        const actualData = JSON.parse(cloudData[1][0]); 
-        saveData(actualData);
-        alert("Data Downloaded Successfully!");
+        const res = await fetch(CLOUD_URL);
+        const cloudData = await res.json();
+        saveData(JSON.parse(cloudData[1][0]));
+        alert("Success!");
         location.reload();
-    } catch (e) { alert("Download failed. Is your Cloud Sheet empty?"); }
-    btn.innerText = "⬇ Cloud Download";
+    } catch (e) { alert("Download failed."); }
 }
 
-// GAME MANAGER
+// LOGIC
 function renderGameManager() {
-    const data = getData();
-    const container = document.getElementById("manageGamesList");
-    container.innerHTML = '<p style="font-size:12px; color:#94a3b8; margin-bottom:10px">Manage Games List:</p>' + 
-        data.games.map(g => `
-        <div class="manage-row">
-            <span style="flex:1">${g}</span>
-            <button class="secondary-btn" onclick="renameGame('${g}')">Rename</button>
-            <button class="danger-btn" onclick="deleteGame('${g}')">Delete</button>
-        </div>`).join("");
-    document.getElementById("gameList").innerHTML = data.games.map(g => `<option value="${g}">`).join("");
+    const d = getData();
+    document.getElementById("manageGamesList").innerHTML = '<p style="font-size:12px; color:#94a3b8">Manage Games:</p>' + 
+        d.games.map(g => `<div class="manage-row"><span>${g}</span><button class="secondary-btn" onclick="renameGame('${g}')">Edit</button><button class="danger-btn" onclick="deleteGame('${g}')">Del</button></div>`).join("");
+    document.getElementById("gameList").innerHTML = d.games.map(g => `<option value="${g}">`).join("");
 }
 
 function handleGame() {
-    const name = document.getElementById("gameInput").value.trim();
-    if (!name) return alert("Please enter a game name.");
-    let data = getData();
-    if (!data.games.includes(name)) {
-        if (confirm(`Add "${name}" to your list?`)) { 
-            data.games.push(name); 
-            saveData(data); 
-        } else return;
-    }
-    currentGame = name;
-    document.getElementById("currentSelectedGame").innerText = "Game: " + name;
+    const n = document.getElementById("gameInput").value.trim();
+    if (!n) return alert("Enter game");
+    let d = getData();
+    if (!d.games.includes(n)) { d.games.push(n); saveData(d); }
+    currentGame = n;
+    document.getElementById("currentSelectedGame").innerText = n;
     document.getElementById("entryBox").style.display = "block";
     document.getElementById("date").valueAsDate = new Date();
 }
 
-function renameGame(old) {
-    const n = prompt("Change name to:", old);
-    if (!n || n === old) return;
-    let d = getData();
-    d.games = d.games.map(g => g === old ? n : g);
-    d.logs = d.logs.map(l => { if(l.game === old) l.game = n; return l; });
-    saveData(d); renderGameManager();
-}
-
-function deleteGame(n) {
-    if(confirm(`Delete "${n}" and all its history?`)) {
-        let d = getData();
-        d.games = d.games.filter(g => g !== n);
-        d.logs = d.logs.filter(l => l.game !== n);
-        saveData(d); renderGameManager();
-    }
-}
-
-// ENTRY & DASHBOARD
 function saveEntry() {
-    let data = getData();
-    data.logs.unshift({
+    let d = getData();
+    d.logs.unshift({
         id: Date.now(),
         game: currentGame,
         date: document.getElementById("date").value,
@@ -284,56 +218,36 @@ function saveEntry() {
         avail_bal: Number(document.getElementById("avail_bal").value) || 0,
         refer: Number(document.getElementById("refer").value) || 0
     });
-    saveData(data);
-    alert("Record Saved Locally!");
-    document.getElementById("entryBox").style.display = "none";
+    saveData(d);
+    alert("Saved!");
     showPage('home');
-}
-
-function deleteLog(id) {
-    if (!confirm("Delete this specific record?")) return;
-    let d = getData();
-    d.logs = d.logs.filter(l => l.id !== id);
-    saveData(d); render();
 }
 
 function render() {
     const data = getData();
     const filter = document.getElementById("filter").value;
-    document.getElementById("syncStatus").innerText = "Last Synced: " + (data.lastSync || "Never");
+    document.getElementById("syncStatus").innerText = "Last Sync: " + (data.lastSync || "Never");
     
-    let html = "", tin = 0, tout = 0, tref = 0, tavail = 0, gProf = {}, dProf = {};
-
+    let html = "", tin = 0, tout = 0, tref = 0, tavail = 0, gP = {}, dP = {};
     data.logs.forEach(l => {
         if (filter && l.game !== filter) return;
         const p = l.withdraw - l.balance;
         tin += l.balance; tout += l.withdraw; tref += Number(l.refer); tavail += Number(l.avail_bal);
-        gProf[l.game] = (gProf[l.game] || 0) + p;
-        dProf[l.date] = (dProf[l.date] || 0) + p;
-
-        html += `<div class="log-item">
-            <button class="del-btn" onclick="deleteLog(${l.id})">Delete</button>
-            <b style="color:var(--accent)">${l.game}</b> <small style="color:#94a3b8">${l.date}</small><br>
-            <small>VIP ${l.vip} | Wallet: ₹${l.avail_bal} | Refs: ${l.refer}</small><br>
-            ₹${l.balance} → ₹${l.withdraw} <span class="${p>=0?'profit':'loss'}" style="float:right">₹${p >= 0 ? '+' : ''}${p}</span>
-        </div>`;
+        gP[l.game] = (gP[l.game] || 0) + p;
+        dP[l.date] = (dP[l.date] || 0) + p;
+        html += `<div class="log-item"><button class="del-btn" onclick="deleteLog(${l.id})">Del</button><b style="color:var(--accent)">${l.game}</b> <small>${l.date}</small><br><small>VIP ${l.vip} | Wallet: ₹${l.avail_bal} | Ref: ${l.refer}</small><br>₹${l.balance} → ₹${l.withdraw} <span style="float:right; color:${p>=0?'#22c55e':'#ef4444'}">₹${p}</span></div>`;
     });
 
-    document.getElementById("logs").innerHTML = html || "<p style='text-align:center'>No Records Found</p>";
+    document.getElementById("logs").innerHTML = html || "No data.";
     const net = tout - tin;
-    document.getElementById("stats").innerHTML = `
-        <div style="text-align:center"><small style="color:#94a3b8">TOTAL NET PROFIT</small><br><b style="font-size:28px" class="${net>=0?'profit':'loss'}">₹${net}</b></div>
-        <div style="display:flex; justify-content:space-between; margin-top:15px; font-size:12px; border-top:1px solid #334155; padding-top:10px">
-            <span>In: ₹${tin}</span><span>Out: ₹${tout}</span><span>Wallet: ₹${tavail}</span>
-        </div>
-        <div style="text-align:center; margin-top:5px; font-size:12px; color:var(--accent)">Total Referrals: ${tref}</div>`;
+    document.getElementById("stats").innerHTML = `<small>NET PROFIT</small><br><b style="font-size:28px; color:${net>=0?'#22c55e':'#ef4444'}">₹${net}</b><br><div style="display:flex; justify-content:space-between; margin-top:10px; font-size:12px"><span>In: ₹${tin}</span><span>Out: ₹${tout}</span><span>Wallet: ₹${tavail}</span></div>`;
 
     if (window.Chart) {
-        const sortedDates = Object.keys(dProf).sort((a,b)=>new Date(a)-new Date(b));
+        const sd = Object.keys(dP).sort((a,b)=>new Date(a)-new Date(b));
         if(chart1) chart1.destroy();
-        chart1 = new Chart(document.getElementById("chart1"), { type:'line', data:{labels:sortedDates, datasets:[{label:'Profit Trend', data:sortedDates.map(d=>dProf[d]), borderColor:'#f59e0b', tension:0.4, fill:true, backgroundColor:'rgba(245,158,11,0.1)'}]}});
+        chart1 = new Chart(document.getElementById("chart1"), { type:'line', data:{labels:sd, datasets:[{label:'Profit', data:sd.map(d=>dP[d]), borderColor:'#f59e0b', tension:0.4, fill:true, backgroundColor:'rgba(245,158,11,0.1)'}]}});
         if(chart2) chart2.destroy();
-        chart2 = new Chart(document.getElementById("chart2"), { type:'bar', data:{labels:Object.keys(gProf), datasets:[{label:'By Game', data:Object.values(gProf), backgroundColor:'#38bdf8'}]}});
+        chart2 = new Chart(document.getElementById("chart2"), { type:'bar', data:{labels:Object.keys(gP), datasets:[{label:'By Game', data:Object.values(gP), backgroundColor:'#38bdf8'}]}});
     }
     updateFilter();
 }
@@ -341,16 +255,68 @@ function render() {
 function updateFilter() {
     const f = document.getElementById("filter");
     const cur = f.value;
-    f.innerHTML = '<option value="">Filter by Game (All)</option>' + getData().games.map(g => `<option value="${g}" ${g===cur?'selected':''}>${g}</option>`).join("");
+    f.innerHTML = '<option value="">All Games</option>' + getData().games.map(g => `<option value="${g}" ${g===cur?'selected':''}>${g}</option>`).join("");
 }
 
 function exportAll() {
-    let csv = "Game,Date,VIP,In,Out,WalletBalance,RefCount\n";
-    getData().logs.forEach(l => csv += `"${l.game}",${l.date},${l.vip},${l.balance},${l.withdraw},${l.avail_bal},${l.refer}\n`);
-    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = "ylg_full_data.csv"; a.click();
+    let csv = "Game,Date,In,Out,Wallet,Ref\n";
+    getData().logs.forEach(l => csv += `"${l.game}",${l.date},${l.balance},${l.withdraw},${l.avail_bal},${l.refer}\n`);
+    window.open(URL.createObjectURL(new Blob([csv],{type:'text/csv'})));
 }
 
-window.onload = () => { render(); if ('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js'); };
+function renameGame(old) {
+    const n = prompt("New name:", old);
+    if (!n || n === old) return;
+    let d = getData(); d.games = d.games.map(g => g === old ? n : g);
+    d.logs = d.logs.map(l => { if(l.game === old) l.game = n; return l; });
+    saveData(d); renderGameManager();
+}
+
+function deleteGame(n) {
+    if(confirm("Delete game?")) {
+        let d = getData(); d.games = d.games.filter(g => g !== n); d.logs = d.logs.filter(l => l.game !== n);
+        saveData(d); renderGameManager();
+    }
+}
+
+function deleteLog(id) {
+    if(!confirm("Delete?")) return;
+    let d = getData(); d.logs = d.logs.filter(l => l.id !== id);
+    saveData(d); render();
+}
+
+// SERVICE WORKER & UPDATES
+let refreshing = false;
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+    });
+
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js').then(reg => {
+            reg.addEventListener('updatefound', () => {
+                const nw = reg.installing;
+                nw.addEventListener('statechange', () => {
+                    if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+                        document.getElementById("updateToast").style.display = "block";
+                    }
+                });
+            });
+        });
+    });
+}
+
+function forceUpdateCheck() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration().then(reg => {
+            if (reg) reg.update().then(() => alert("Checking GitHub for new code..."));
+        });
+    }
+}
+
+window.onload = () => { updateStatus(); render(); };
 </script>
 </body>
 </html>
